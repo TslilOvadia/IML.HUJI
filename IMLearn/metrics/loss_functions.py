@@ -38,7 +38,12 @@ def misclassification_error(y_true: np.ndarray, y_pred: np.ndarray, normalize: b
     -------
     Misclassification of given predictions
     """
-    raise NotImplementedError()
+    diff = np.array(y_true) - np.array(y_pred)
+    result = sum(diff).astype(np.float)
+    if normalize:
+        return result / len(y_true)
+    return result
+    # raise NotImplementedError()
 
 
 def accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:

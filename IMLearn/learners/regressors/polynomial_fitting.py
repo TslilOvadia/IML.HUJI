@@ -35,8 +35,8 @@ class PolynomialFitting(BaseEstimator):
             Responses of input data to fit to
         """
         X = self.__transform(X)
-        self.linear_regressor.fit(X,y)
 
+        self.linear_regressor.fit(X,y)
 
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
@@ -89,5 +89,5 @@ class PolynomialFitting(BaseEstimator):
         transformed: ndarray of shape (n_samples, k+1)
             Vandermonde matrix of given samples up to degree k
         """
-        return np.vander(X,self.k, increasing=True)
+        return np.vander(X, self.k, increasing=True)
 
