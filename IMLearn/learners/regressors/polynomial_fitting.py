@@ -21,6 +21,7 @@ class PolynomialFitting(BaseEstimator):
         super().__init__()
         self.k = k
         self.linear_regressor = LinearRegression(True)
+    
 
     def _fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
         """

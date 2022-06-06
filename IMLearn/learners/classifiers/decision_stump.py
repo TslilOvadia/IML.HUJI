@@ -1,7 +1,12 @@
 from __future__ import annotations
 from typing import Tuple, NoReturn
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
 from ...base import BaseEstimator
 import numpy as np
+from numba import njit,jit,vectorize
 from itertools import product
 
 from ...metrics import misclassification_error
@@ -29,6 +34,7 @@ class DecisionStump(BaseEstimator):
         super().__init__()
         self.threshold_, self.j_, self.sign_ = None, None, None
 
+
     def _fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
         """
         fits a decision stump to the given data
@@ -42,15 +48,22 @@ class DecisionStump(BaseEstimator):
             Responses of input data to fit to
         """
         # For each feature we check for the best score among all feature based stumps
-        minimal_err_feature = 1
+        minimal_err_feature = np.inf
+        # Check on every feature:
         for feature in range(X.shape[1]):
-            for sign in [-1, 1]:
-                thr, thr_err = self._find_threshold(values=X[:,feature], labels=y, sign=sign)
+            values = X[:,feature]
+            # Check on each sign
+            for sign in [1, -1]:
+                # Get the best threshold for optimal split
+                thr, thr_err = self._find_threshold(values=values, labels=y, sign=sign)
+                # print(f'using sign {sign} and the {feature}\'th features min err is {minimal_err_feature} and current err is {thr_err}ֿ\n')
                 if thr_err < minimal_err_feature:
                     minimal_err_feature = thr_err
                     self.threshold_ = thr
                     self.j_ = feature
                     self.sign_ = sign
+
+        # print(f'sign is {self.sign_} and best err is {minimal_err_feature} using feature number {self.j_}')
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -71,8 +84,15 @@ class DecisionStump(BaseEstimator):
         Feature values strictly below threshold are predicted as `-sign` whereas values which equal
         to or above the threshold are predicted as `sign`
         """
-        X[X < self.threshold_] = -self.sign_
-        X[X >= self.threshold_] = self.sign_
+        # Get chosen feature:
+        pred = np.copy(X[:, self.j_])
+        # Thresholding:
+        negative_threshold_indices = np.argwhere(pred < self.threshold_)
+        positive_threshold_indices = np.argwhere(pred >= self.threshold_)
+        # Assign predictions accordingly:
+        pred[negative_threshold_indices] = -self.sign_
+        pred[positive_threshold_indices] = self.sign_
+        return pred
 
     def _find_threshold(self, values: np.ndarray, labels: np.ndarray, sign: int) -> Tuple[float, float]:
         """
@@ -104,16 +124,34 @@ class DecisionStump(BaseEstimator):
         For every tested threshold, values strictly below threshold are predicted as `-sign` whereas values
         which equal to or above the threshold are predicted as `sign`
         """
-        thr, thr_err,N = None,1, len(labels)
-        for val in np.unique(values):
-            test = np.copy(values)
-            test[test < val] = -sign
-            test[test >= val] = sign
-            curr_err = test - np.sign(labels)
-            err = np.sum(labels[np.argwhere(curr_err > 0)])/N
+        thr, thr_err,N = 0.0 ,np.inf, labels.shape[0]
+        feature_is_binary = len(np.unique(values)) == 2
+        val_set = np.unique(values)
+        sort_idx = np.argsort(values)
+        labels = labels[sort_idx]
+        values = values[sort_idx]
+
+        for val_i in range(len(val_set)):
+            cur_values = np.copy(values)
+            if val_i < len(val_set)-1:
+                # Find the indices of the values higher and lower than current value:
+                negative_threshold_indices = cur_values < val_set[val_i] + 0.5*(val_set[val_i+1]-val_set[val_i])
+                positive_threshold_indices = cur_values >= val_set[val_i] + 0.5*(val_set[val_i+1]-val_set[val_i])
+                # Assign the corresponding sign to the corresponding indices:
+                cur_values[positive_threshold_indices] = sign
+                cur_values[negative_threshold_indices] = -sign
+            # Count the errors for the current split:
+            signed_labels = np.sign(labels)
+            wrong_threshold_indices = np.argwhere(cur_values != signed_labels)
+            err = np.sum(np.abs(labels[wrong_threshold_indices]))
+            # Update the variables if there is any improvements:
             if err < thr_err:
                 thr_err = err
-                thr = val
+                if val_i < len(val_set) - 1 and not feature_is_binary :
+                    thr = val_set[val_i] + 0.5*(val_set[val_i+1]-val_set[val_i])
+                else:
+                    thr = val_set[val_i]
+
         return thr,thr_err
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
