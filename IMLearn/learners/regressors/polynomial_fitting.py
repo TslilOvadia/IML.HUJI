@@ -90,5 +90,6 @@ class PolynomialFitting(BaseEstimator):
         transformed: ndarray of shape (n_samples, k+1)
             Vandermonde matrix of given samples up to degree k
         """
-        return np.vander(X, self.k, increasing=True)
+        res = np.vander(X.T, self.k+1, increasing=False)
+        return res
 
