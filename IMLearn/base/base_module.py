@@ -41,7 +41,8 @@ class BaseModule(ABC):
         --------
         For f:R^d->R defined by f(x) = <w,x> then: n_in=d, n_out=1 and thus output shape is (1,)
         """
-        raise NotImplementedError()
+        return self.weights_
+
 
     def compute_jacobian(self, **kwargs) -> np.ndarray:
         """
@@ -61,7 +62,7 @@ class BaseModule(ABC):
         For f:R^d->R defined by f(x) = <w,x> then: n_in=d, n_out=1 and thus output shape is (1,d)
 
         """
-        raise NotImplementedError()
+        return np.jacobian(self.compute_output())
 
     @property
     def weights(self):

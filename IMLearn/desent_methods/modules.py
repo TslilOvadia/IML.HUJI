@@ -33,7 +33,8 @@ class L2(BaseModule):
         output: ndarray of shape (1,)
             Value of function at point self.weights
         """
-        raise NotImplementedError()
+        return
+
 
     def compute_jacobian(self, **kwargs) -> np.ndarray:
         """

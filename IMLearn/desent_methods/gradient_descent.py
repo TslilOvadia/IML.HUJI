@@ -76,7 +76,7 @@ class GradientDescent:
         self.max_iter_ = max_iter
         self.callback_ = callback
 
-    def fit(self, f: BaseModule, X: np.ndarray, y: np.ndarray):
+    def fit(self, f: BaseModule, X: np.ndarray, y: np.ndarray)->np.ndarray:
         """
         Optimize module using Gradient Descent iterations over given input samples and responses
 
@@ -119,4 +119,28 @@ class GradientDescent:
                 Euclidean norm of w^(t)-w^(t-1)
 
         """
-        raise NotImplementedError()
+        n_samples, n_features = X.shape
+        weights_ = np.random.normal(0,0,0)
+        step_ = 0
+        history_weights = np.zeros((self.max_iter_,n_features))
+        comp_f = f.__init__(weights_)
+        while step_ < self.max_iter_:
+            step_ += 1
+            prev_weights_ = np.copy(weights_)
+            weights_ = weights_ - self.learning_rate_.lr_step() * comp_f.compute_output()
+            score = np.norm(weights_, prev_weights_)
+            history_weights[step_,:] = weights_
+            self.callback_(self, [weights_, f.compute_output(), f.compute_jacobian(), step_, 0, score])
+
+            if score < self.tol_:
+                break
+
+        return self._get_weights_by_type_(history_weights)
+
+    def _get_weights_by_type_(self, weights):
+        if self.out_type_ == 'last':
+            return weights
+        elif self.out_type_ == 'best':
+            return np.min(weights, axis=1)
+        else:
+            return np.mean(weights, axis=1)
